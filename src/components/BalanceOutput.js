@@ -78,7 +78,33 @@ BalanceOutput.propTypes = {
 export default connect(state => {
   let balance = [];
 
-  /* YOUR CODE GOES HERE */
+  //Dynamic condition for filtering journal entries
+  const condition = (f,s,e)=>{
+    return s & e?   f>=s && f<=e:
+    s? f>=s:f<=e;
+  };
+
+  balance= state.journalEntries
+  .filter(f=> //filter dynamically by account and date range
+    (condition(f.ACCOUNT,state.userInput.startAccount,state.userInput.endAccount)) && 
+    (condition(f.PERIOD.getTime(),state.userInput.startPeriod? state.userInput.startPeriod.getTime():null,state.userInput.endPeriod? state.userInput.endPeriod.getTime():null))
+    )
+  .map(row=> {
+    //Search account
+    const account = state.accounts.filter(f=> f.ACCOUNT===row.ACCOUNT);
+    return {
+      ACCOUNT : row.ACCOUNT,
+      DESCRIPTION: account.length>0? account[0].LABEL:'',//Asigns description if an account is found
+      DEBIT : row.DEBIT,
+      CREDIT : row.CREDIT,
+      BALANCE : row.DEBIT-row.CREDIT// Gets difference between debit and credit
+    };
+  }).sort((a,b)=> a.ACCOUNT>b.ACCOUNT);//incrementing sorting
+    /*
+    NOTE: There is a journal entry that does not contains a valid account, I am not sure 
+    if this is ok or no, so I set not found accounts inside the list without description
+    thinking that it is worse ignore money just because a description that could qualify as "others"
+    */
 
   const totalCredit = balance.reduce((acc, entry) => acc + entry.CREDIT, 0);
   const totalDebit = balance.reduce((acc, entry) => acc + entry.DEBIT, 0);
